@@ -57,3 +57,21 @@ Used with :
 cargo --version
 cargo 1.80.1 (376290515 2024-07-16)
 ```
+
+## Notes
+
+This project use those dependancies : 
+
+```code
+[dependencies]
+ff = { version = "0.13.0", features = ["derive"] }
+hex = "0.4.3"
+rand = "0.8.5"
+rs_merkle = "1.4.2"
+```
+
+**hex** & **rand** added for some facilities
+
+**ff** is for finite fields tooling : <https://crates.io/crates/ff>
+
+**rs_merkleis** for Merkle tree tooling : <https://docs.rs/rs_merkle/latest/rs_merkle/>
