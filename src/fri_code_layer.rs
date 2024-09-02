@@ -3,7 +3,6 @@
 use ff::{Field, PrimeField};
 use rs_merkle::algorithms::Sha256;
 use rs_merkle::Hasher;
-use rs_merkle::MerkleProof;
 use rs_merkle::MerkleTree;
 
 use crate::channel::Channel;
@@ -110,8 +109,13 @@ impl FriCodeLayer {
         let mut fri_layer_list = Vec::with_capacity((initial_poly.degree() / 2) + 1);
 
         let initial_domain = generate_enlarged_evaluation_domain(domain_size);
+        println!(
+            "Initial domain generated with size : {:?}",
+            initial_domain.len()
+        );
 
         let mut current_layer = FriCodeLayer::new(&initial_poly, &initial_domain);
+        println!("Initial layer generated");
 
         fri_layer_list.push(current_layer.clone());
 
@@ -126,6 +130,10 @@ impl FriCodeLayer {
         );
 
         while current_poly.degree() > 0 {
+            println!(
+                "Generate new layer with polynome degree : {:?}",
+                current_poly.degree()
+            );
             // <<<< Receive challenge
             let beta_challenge = interactive_channel.get_challenge();
 
@@ -218,6 +226,8 @@ impl FriCodeLayer {
 
 #[cfg(test)]
 mod tests {
+
+    use rs_merkle::MerkleProof;
 
     use super::*;
 

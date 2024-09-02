@@ -23,8 +23,11 @@ fn main() {
     let poly = Polynome::new_poly(&coefficients);
     let domain_size = 48; // 8 time degree of the polynome
     let i_channel = &mut Channel::new();
+
+    println!("COMMITMENT PHASE");
     let (_last_poly, fri_layers) = FriCodeLayer::fri_commit_phase(poly, domain_size, i_channel);
 
+    println!("DECOMMITMENT PHASE");
     let (decom, _queries) =
         FriCodeLayer::fri_decommitment_phase(20, domain_size, &fri_layers, i_channel);
 
