@@ -1,0 +1,10 @@
+[package]
+name = "fri_basic_rustling"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ff = { version = "0.13.0", features = ["derive"] }
+hex = "0.4.3"
+rand = "0.8.5"
+rs_merkle = "1.4.2"
