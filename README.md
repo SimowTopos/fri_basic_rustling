@@ -3,7 +3,7 @@
 ## DISCLAIMER: 
 
 This library is for education and exploration.
-Please contact the author fir a peoduction ready implementation.
+Please contact the author for a production ready implementation.
 
 ## Introduction
 
