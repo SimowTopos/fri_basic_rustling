@@ -1,5 +1,10 @@
 # FRI basic code in rust for exploration
 
+## DISCLAIMER: 
+
+This library is for education and exploration.
+Please contact the author fir a peoduction ready implementation.
+
 ## Introduction
 
 Welcome to the FRI Basic Code project!
