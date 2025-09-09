@@ -8,6 +8,12 @@ pub struct Channel {
     committed_merkle_root_by_challenge: HashMap<FieldElement, Option<String>>,
 }
 
+impl Default for Channel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Channel {
     pub fn new() -> Self {
         Self {
@@ -16,11 +22,11 @@ impl Channel {
     }
 
     pub fn get_challenge(&self) -> FieldElement {
-        return FieldElement::from(rand::thread_rng().gen::<u64>());
+        FieldElement::from(rand::thread_rng().gen::<u64>())
     }
 
     pub fn get_index(&self) -> usize {
-        return rand::thread_rng().gen::<usize>();
+        rand::thread_rng().gen::<usize>()
     }
 
     pub fn add_committed_data(

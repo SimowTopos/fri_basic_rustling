@@ -38,7 +38,6 @@ fn main() {
             let proof_hashes = d.layers_auth_paths[i].clone();
             let proof = MerkleProof::<Sha256>::new(proof_hashes);
 
-            
             let eval_hash = Sha256::hash(
                 d.layers_evaluations[i]
                     .to_repr()
@@ -47,7 +46,11 @@ fn main() {
                     .expect("Représentation incorrecte"),
             );
 
-            println!("Proof path for layer {:?}: {:?}", i, proof.proof_hashes_hex());
+            println!(
+                "Proof path for layer {:?}: {:?}",
+                i,
+                proof.proof_hashes_hex()
+            );
             println!("Hash for layer {:?} : {:?}", i, hex::encode(eval_hash));
         });
     });

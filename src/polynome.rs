@@ -34,7 +34,7 @@ impl Polynome<FieldElement> {
     pub fn degree(&self) -> usize {
         self.coefficients.len() - 1
     }
-    
+
     pub fn evaluate(&self, x: &FieldElement) -> FieldElement {
         let mut result = FieldElement::from(0u64);
         let mut power = FieldElement::from(1u64);
@@ -79,7 +79,7 @@ impl Polynome<FieldElement> {
             .iter()
             .skip(1)
             .step_by(2)
-            .map(|x| x.clone() * beta)
+            .map(|x| *x * beta)
             .collect::<Vec<FieldElement>>();
 
         let (even_poly, odd_poly) = Polynome::pad_with_zero_coefficients(
@@ -89,13 +89,13 @@ impl Polynome<FieldElement> {
 
         let mut new_coefs = vec![];
         for (i, coef) in even_poly.coefficients.iter().enumerate() {
-            new_coefs.push(coef.clone());
+            new_coefs.push(*coef);
             if i < odd_poly.coefficients.len() {
-                new_coefs[i] += odd_poly.coefficients[i].clone();
+                new_coefs[i] += odd_poly.coefficients[i];
             }
         }
 
-        return Polynome::new_poly(&new_coefs);
+        Polynome::new_poly(&new_coefs)
     }
 }
 
