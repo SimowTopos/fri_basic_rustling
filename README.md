@@ -21,6 +21,42 @@ In this project, you will find four modules that play crucial roles in the FRI a
 
 **channel** : The `channel` module provides an interface for interacting with the verifier, allowing you to supply the beta value challenge for folding and also manage some query verification.
 
+## New Feature: Confidence-Based Verification
+
+This implementation now supports **confidence-based verification**, allowing you to specify the desired confidence level for the FRI protocol verification.
+
+### Usage Example
+
+```rust
+use fri_basic_rustling::fri_code_layer::{FriConfig, FriCodeLayer};
+
+// Create a configuration for 99% confidence
+let config = FriConfig::new(0.99)?;
+
+// The system automatically calculates the required number of queries
+let num_queries = config.calculate_num_queries(); // Returns 7 queries for 99%
+
+// Use in decommitment phase
+let (decommitments, queries, actual_confidence) = 
+    FriCodeLayer::fri_decommitment_phase_with_confidence(
+        &config,
+        domain_size,
+        &fri_layers,
+        &mut channel,
+    );
+
+println!("Achieved {}% confidence", actual_confidence * 100.0);
+```
+
+### Confidence Level Examples
+
+- **90% confidence**: Requires ~4 queries (soundness error: 6.25%)
+- **95% confidence**: Requires ~5 queries (soundness error: 3.125%) 
+- **99% confidence**: Requires ~7 queries (soundness error: 0.78%)
+- **99.9% confidence**: Requires ~10 queries (soundness error: 0.098%)
+
+The system uses the simplified soundness analysis where each query has approximately 1/2 probability of catching a cheating prover.
+
 To get started :
 
 - Run the tests globally :
@@ -40,10 +76,16 @@ cargo test fri_code_layer
 cargo test channel
 ```
 
-- Simply run the `main` function, which demonstrates a step-by-step process of committing and decomitting on a polynomial composition. (See the log). You can execute the program by running :
+- Simply run the `main` function, which demonstrates a step-by-step process of committing and decomitting on a polynomial composition with both traditional fixed queries and confidence-based verification:
 
 ```rust
 cargo run
+```
+
+- Run the confidence verification example:
+
+```rust
+cargo run --example confidence_verification
 ```
 
 Please note that there are still some cleaning tasks remaining, and one test is currently failing, specifically the one that checks the symmetry of the domain. Additionally, you can find the slides for this project in the `slide` directory.

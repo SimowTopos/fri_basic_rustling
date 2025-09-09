@@ -3,6 +3,14 @@ name = "fri_basic_rustling"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "fri_basic_rustling"
+path = "src/lib.rs"
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
+
 [dependencies]
 ff = { version = "0.13.0", features = ["derive"] }
 hex = "0.4.3"

@@ -9,6 +9,43 @@ use crate::channel::Channel;
 use crate::field_provider_v1::FieldElement;
 use crate::polynome::Polynome;
 
+/// Configuration for FRI verification protocol
+#[derive(Clone, Debug)]
+pub struct FriConfig {
+    /// Desired confidence level (e.g., 0.99 for 99% confidence)
+    pub confidence_level: f64,
+}
+
+impl FriConfig {
+    /// Create a new FRI configuration with the specified confidence level
+    pub fn new(confidence_level: f64) -> Result<Self, String> {
+        if confidence_level <= 0.0 || confidence_level >= 1.0 {
+            return Err("Confidence level must be between 0 and 1 (exclusive)".to_string());
+        }
+        Ok(Self { confidence_level })
+    }
+
+    /// Calculate the number of queries needed for the desired confidence level
+    /// 
+    /// Uses the simplified soundness analysis where each query has ~1/2 probability
+    /// of catching a cheating prover. The soundness error is approximately (1/2)^k
+    /// where k is the number of queries.
+    pub fn calculate_num_queries(&self) -> i32 {
+        let soundness_error = 1.0 - self.confidence_level;
+        // k >= log(soundness_error) / log(0.5)
+        let num_queries = (soundness_error.ln() / 0.5f64.ln()).ceil() as i32;
+        
+        // Ensure minimum of 1 query and maximum reasonable limit
+        num_queries.max(1).min(100)
+    }
+
+    /// Get the actual confidence level achieved with the given number of queries
+    pub fn actual_confidence_level(num_queries: i32) -> f64 {
+        let soundness_error = 0.5f64.powi(num_queries);
+        1.0 - soundness_error
+    }
+}
+
 // Domain_size 8 time polynome degree
 pub fn generate_enlarged_evaluation_domain(domain_size: usize) -> Vec<FieldElement> {
     let g = FieldElement::MULTIPLICATIVE_GENERATOR;
@@ -222,6 +259,33 @@ impl FriCodeLayer {
             (vec![], vec![])
         }
     }
+
+    // Decommitment phase with confidence-based verification
+    pub fn fri_decommitment_phase_with_confidence(
+        config: &FriConfig,
+        domain_size: usize,
+        fri_layers: &Vec<FriCodeLayer>,
+        i_channel: &mut Channel,
+    ) -> (Vec<FriDecommitment>, Vec<usize>, f64) {
+        let num_queries = config.calculate_num_queries();
+        let actual_confidence = FriConfig::actual_confidence_level(num_queries);
+        
+        println!(
+            "Using {} queries for {:.2}% target confidence (actual: {:.4}%)",
+            num_queries,
+            config.confidence_level * 100.0,
+            actual_confidence * 100.0
+        );
+        
+        let (decommitments, queries) = Self::fri_decommitment_phase(
+            num_queries,
+            domain_size,
+            fri_layers,
+            i_channel,
+        );
+        
+        (decommitments, queries, actual_confidence)
+    }
 }
 
 #[cfg(test)]
@@ -400,5 +464,76 @@ mod tests {
                 assert_eq!(hex::encode(eval_hash), proof.proof_hashes_hex()[0]);
             });
         });
+    }
+
+    #[test]
+    fn test_fri_config_creation() {
+        // Valid confidence levels
+        assert!(FriConfig::new(0.5).is_ok());
+        assert!(FriConfig::new(0.99).is_ok());
+        assert!(FriConfig::new(0.999).is_ok());
+        
+        // Invalid confidence levels
+        assert!(FriConfig::new(0.0).is_err());
+        assert!(FriConfig::new(1.0).is_err());
+        assert!(FriConfig::new(-0.1).is_err());
+        assert!(FriConfig::new(1.1).is_err());
+    }
+
+    #[test]
+    fn test_query_calculation() {
+        // Test known confidence levels
+        let config_90 = FriConfig::new(0.90).unwrap();
+        let queries_90 = config_90.calculate_num_queries();
+        assert_eq!(queries_90, 4); // log(0.1)/log(0.5) ≈ 3.32, ceil = 4
+        
+        let config_99 = FriConfig::new(0.99).unwrap();
+        let queries_99 = config_99.calculate_num_queries();
+        assert_eq!(queries_99, 7); // log(0.01)/log(0.5) ≈ 6.64, ceil = 7
+        
+        let config_999 = FriConfig::new(0.999).unwrap();
+        let queries_999 = config_999.calculate_num_queries();
+        assert_eq!(queries_999, 10); // log(0.001)/log(0.5) ≈ 9.97, ceil = 10
+    }
+
+    #[test]
+    fn test_actual_confidence_level() {
+        // Test that actual confidence matches expectation
+        let confidence_1_query = FriConfig::actual_confidence_level(1);
+        assert!((confidence_1_query - 0.5).abs() < 0.001);
+        
+        let confidence_7_queries = FriConfig::actual_confidence_level(7);
+        assert!((confidence_7_queries - 0.9921875).abs() < 0.001); // 1 - (1/2)^7
+        
+        let confidence_10_queries = FriConfig::actual_confidence_level(10);
+        assert!((confidence_10_queries - 0.9990234375).abs() < 0.001); // 1 - (1/2)^10
+    }
+
+    #[test]
+    fn test_fri_decommitment_phase_with_confidence() {
+        let coefficients = vec![
+            FieldElement::from(1u64),
+            FieldElement::from(2u64),
+            FieldElement::from(3u64),
+        ];
+        let poly = Polynome::new_poly(&coefficients);
+        let domain_size = 24;
+        let i_channel = &mut Channel::new();
+        let (_last_poly, fri_layers) = FriCodeLayer::fri_commit_phase(poly, domain_size, i_channel);
+
+        let config = FriConfig::new(0.99).unwrap();
+        let (decom, queries, actual_confidence) =
+            FriCodeLayer::fri_decommitment_phase_with_confidence(
+                &config,
+                domain_size,
+                &fri_layers,
+                i_channel,
+            );
+
+        let expected_queries = config.calculate_num_queries();
+        assert_eq!(decom.len() as i32, expected_queries);
+        assert_eq!(queries.len() as i32, expected_queries);
+        assert!(actual_confidence >= config.confidence_level);
+        assert!(actual_confidence >= 0.99);
     }
 }
